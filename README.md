@@ -19,11 +19,15 @@ This game engine contains the following systems:
 - Parsers for XML, OBJ, 3DSprite, TXT, and binary files
 
 
+
+
 ### **2D/3D Math and Physics Library**  
 The math and physics library supports the following features:  
 - Collisions and raycasts for AABBs, OBBs, capsules, discs, spheres, and lines
 - General math utilities for dot product, cross product, projected lengths, easing functions, splines, interpolation, etc.
 - Physics simulations for Position Based Dynamics and a Mass-Spring System
+
+
 
 
 ### **DirectX 11 Rendering Pipeline**  
