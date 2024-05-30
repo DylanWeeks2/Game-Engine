@@ -24,6 +24,8 @@ This game engine contains the following systems:
 ### **2D/3D Math and Physics Library**  
 The math and physics library supports the following features:  
 - Collisions and raycasts for AABBs, OBBs, capsules, discs, spheres, and lines
+- Spatial partitioning algorithms for BVH, bit-buckets, and quad trees
+- Raycasts for AABBs, OBBs, capsules, cylinders, discs, spheres, lines, planes, and any convex hull
 - General math utilities for dot product, cross product, projected lengths, easing functions, splines, interpolation, etc.
 - Physics simulations for Position Based Dynamics and a Mass-Spring System
 
@@ -31,4 +33,4 @@ The math and physics library supports the following features:
 
 
 ### **DirectX 11 Rendering Pipeline**  
-This engine contains a DirectX 11 rendering pipeline to support texturing, HLSL shader support, sprite animations, sprite sheets, bitmap fonts, and render target/depth stencil effects.
+This engine contains a DirectX 11 rendering pipeline to support texturing, HLSL shaders, sprite animations, sprite sheets, bitmap fonts, render target/depth stencil effects, specular maps, and normal maps.
