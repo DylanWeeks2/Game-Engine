@@ -9,6 +9,7 @@ This project is the C++ game engine that is used to make all my personal project
 # **<ins>Project Features</ins>**  
 ### **Game Engine Systems**  
 https://github.com/user-attachments/assets/16973f8c-1a55-484d-8d5f-7d21c80f9b60
+
 This game engine contains the following systems:  
 - Audio system (FMOD)
 - Input system (mouse, keyboard, Xbox controller)
@@ -24,6 +25,7 @@ This game engine contains the following systems:
 
 ### **2D/3D Math and Physics Library**  
 https://github.com/user-attachments/assets/ebdacf4e-8c7e-4ff5-85d8-bd38517019c1
+
 The math and physics library supports the following features:
 - Physics simulations for 3D rigid body dynamics and particle-based Position Based Dynamics
 - Collisions detections for any convex polygon or polyhedron (SAT, GJK, and EPA)
@@ -36,4 +38,5 @@ The math and physics library supports the following features:
 
 ### **DirectX 11 Rendering Pipeline**  
 https://github.com/user-attachments/assets/a60be2ee-e2e8-4ec1-8f86-a5f159f6af76
+
 This engine contains a DirectX 11 rendering pipeline to support texturing, HLSL shaders, sprite animations, sprite sheets, bitmap fonts, render target/depth stencil effects, specular maps, and normal maps.
