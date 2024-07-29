@@ -53,6 +53,8 @@ const unsigned char KEYCODE_COMMA = VK_OEM_COMMA;
 const unsigned char KEYCODE_PERIOD = VK_OEM_PERIOD;
 const unsigned char KEYCODE_SEMICOLON = VK_OEM_1;
 const unsigned char KEYCODE_SINGLEQUOTE = VK_OEM_7;
+const unsigned char KEYCODE_PAGEUP = VK_PRIOR;
+const unsigned char KEYCODE_PAGEDOWN = VK_NEXT;
 
 //-----------------------------------------------------------------------------------------------
 InputSystem::InputSystem(InputSystemConfig const& config)

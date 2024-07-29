@@ -49,6 +49,8 @@ extern unsigned char const KEYCODE_COMMA;
 extern unsigned char const KEYCODE_PERIOD;
 extern unsigned char const KEYCODE_SEMICOLON;
 extern unsigned char const KEYCODE_SINGLEQUOTE;
+extern unsigned char const KEYCODE_PAGEUP;
+extern unsigned char const KEYCODE_PAGEDOWN;
 
 //-----------------------------------------------------------------------------------------------
 constexpr int				NUM_KEYCODES = 256;
