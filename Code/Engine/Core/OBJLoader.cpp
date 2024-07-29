@@ -8,6 +8,9 @@
 #include "Engine/Math/MathUtils.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Core/VertexUtils.hpp"
+#include "Engine/Simulations/Collider3D.hpp"
+#include "Engine/Simulations/RigidBody3D.hpp"
+#include "Engine/Math/Plane3D.hpp"
 
 //-----------------------------------------------------------------------------------------------
 void OBJLoader::Load(std::string filename, std::vector<Vertex_PCUTBN>& vertices, std::vector<unsigned int>& indices, Mat44& transform)
@@ -275,7 +278,7 @@ void OBJLoader::Load(std::string filename, std::vector<Vertex_PCUTBN>& vertices,
 			{
 				Vec3 u = (parsedVerts[index - 2] - parsedVerts[index - 3]).GetNormalized();
 				Vec3 v = (parsedVerts[index - 1] - parsedVerts[index - 2]).GetNormalized();
-				Vec3 normal = CrossProduct3D(u, v);
+				Vec3 normal = CrossProduct3D(u, v).GetNormalized();
 				vertices.push_back(Vertex_PCUTBN(parsedVerts[index - 3], Rgba8(), Vec2(), Vec3(), Vec3(), normal));
 				vertices.push_back(Vertex_PCUTBN(parsedVerts[index - 2], Rgba8(), Vec2(), Vec3(), Vec3(), normal));
 				vertices.push_back(Vertex_PCUTBN(parsedVerts[index - 1], Rgba8(), Vec2(), Vec3(), Vec3(), normal));
@@ -293,7 +296,14 @@ void OBJLoader::Load(std::string filename, std::vector<Vertex_PCUTBN>& vertices,
 		}
 	}	
 
-	CalculateTangentSpaceVectors(vertices, indices);
+	if (faces.size() > 0)
+	{
+		CalculateTangentSpaceVectors(vertices, indices);
+	}
+	else
+	{
+		CalculateTangentSpaceVectors(vertices);
+	}
 
 	createEndTime = float(GetCurrentTimeSeconds());
 
@@ -305,4 +315,200 @@ void OBJLoader::Load(std::string filename, std::vector<Vertex_PCUTBN>& vertices,
 	DebuggerPrintf("[loaded mesh] vertices: %d, indices: %d\n", vertices.size(), indices.size());
 	DebuggerPrintf("[time] parse: %f seconds, create: %f seconds\n", parseEndTime - parseStartTime, createEndTime - createStartTime);
 	DebuggerPrintf("-----------------------------------------------------------------------------------------------\n");
+}
+
+//-----------------------------------------------------------------------------------------------
+void OBJLoader::LoadIntoRigidBody(std::string filename, RigidBody3D* rigidBody, Mat44& transform)
+{
+	Strings verts;
+	Strings vertTextureCoords;
+	Strings vertNormals;
+	Strings faces;
+	std::vector<unsigned int> vertIndices;
+	std::vector<int> textureIndices;
+	std::vector<int> normalIndices;
+	std::vector<Vec3> parsedVerts;
+	std::vector<Vec3> normals;
+	std::vector<Vec2> textureCoords;
+	int totalDataFaces = 0;
+	int totalDataVerts = 0;
+	int totalDataTriangles = 0;
+	float parseStartTime = 0.0f;
+	float parseEndTime = 0.0f;
+	float createStartTime = 0.0f;
+	//float createEndTime = 0.0f;
+
+	std::string buffer = "";
+	FileReadToString(buffer, filename);
+
+	parseStartTime = float(GetCurrentTimeSeconds());
+	Strings stringsByLine = SplitStringOnDelimiter(buffer, '\r');
+	if (stringsByLine.size() == 1)
+	{
+		stringsByLine = SplitStringOnDelimiter(buffer, '\n');
+	}
+	for (int stringIndex = 0; stringIndex < stringsByLine.size(); stringIndex++)
+	{
+		Strings splitLineStrings = SplitStringOnDelimiter(stringsByLine[stringIndex], ' ');
+		if (splitLineStrings[0] == "v")
+		{
+			totalDataVerts++;
+			int counter = 1;
+			if (splitLineStrings[1] == "")
+			{
+				while (splitLineStrings[counter] == "")
+				{
+					counter++;
+				}
+			}
+			verts.push_back(splitLineStrings[counter]);
+			verts.push_back(splitLineStrings[counter + 1]);
+			verts.push_back(splitLineStrings[counter + 2]);
+		}
+		else if (splitLineStrings[0] == "vt")
+		{
+			int counter = 1;
+			if (splitLineStrings[1] == "")
+			{
+				while (splitLineStrings[counter] == "")
+				{
+					counter++;
+				}
+			}
+			vertTextureCoords.push_back(splitLineStrings[counter]);
+			vertTextureCoords.push_back(splitLineStrings[counter + 1]);
+		}
+		else if (splitLineStrings[0] == "vn")
+		{
+			int counter = 1;
+			if (splitLineStrings[1] == "")
+			{
+				while (splitLineStrings[counter] == "")
+				{
+					counter++;
+				}
+			}
+			vertNormals.push_back(splitLineStrings[counter]);
+			vertNormals.push_back(splitLineStrings[counter + 1]);
+			vertNormals.push_back(splitLineStrings[counter + 2]);
+		}
+		else if (splitLineStrings[0] == "f")
+		{
+			totalDataFaces++;
+			int counter = 1;
+			if (splitLineStrings[1] == "")
+			{
+				while (splitLineStrings[counter] == "")
+				{
+					counter++;
+				}
+			}
+
+			Strings onlyFaceData;
+			for (int faceIndex = counter; faceIndex < splitLineStrings.size(); faceIndex++)
+			{
+				if (splitLineStrings[faceIndex] != "")
+				{
+					onlyFaceData.push_back(splitLineStrings[faceIndex]);
+				}
+			}
+
+			totalDataTriangles++;
+			for (int faceIndex = 0; faceIndex < onlyFaceData.size(); faceIndex++)
+			{
+				if (onlyFaceData.size() == 3)
+				{
+					faces.push_back(onlyFaceData[faceIndex]);
+				}
+				else
+				{
+					if (faceIndex < 3)
+					{
+						faces.push_back(onlyFaceData[faceIndex]);
+					}
+					else
+					{
+						faces.push_back(onlyFaceData[0]);
+						faces.push_back(onlyFaceData[faceIndex - 1]);
+						faces.push_back(onlyFaceData[faceIndex]);
+						totalDataTriangles++;
+					}
+				}
+			}
+		}
+	}
+
+	//Faces Splitting
+	if (faces.size() != 0)
+	{
+		//Split faces 
+		for (int index = 0; index < faces.size(); index++)
+		{
+			Strings splitFaces = SplitStringOnDelimiter(faces[index], '/');
+			vertIndices.push_back(atoi(splitFaces[0].c_str()) - 1);
+
+			if (splitFaces.size() <= 1)
+			{
+				continue;
+			}
+
+			if (splitFaces[1] != "/")
+			{
+				textureIndices.push_back(atoi(splitFaces[1].c_str()) - 1);
+			}
+			else
+			{
+				textureIndices.push_back(-1);
+			}
+
+			if (splitFaces[2] != "/")
+			{
+				normalIndices.push_back(atoi(splitFaces[2].c_str()) - 1);
+			}
+			else
+			{
+				normalIndices.push_back(-1);
+			}
+		}
+	}
+	parseEndTime = float(GetCurrentTimeSeconds());
+
+	//Creation
+	createStartTime = float(GetCurrentTimeSeconds());
+
+	//Store Parsed Verts into Vec3s
+	parsedVerts.reserve(verts.size() / 3);
+	for (int vertIndex = 1; vertIndex <= verts.size(); vertIndex++)
+	{
+		if (vertIndex % 3 == 0)
+		{
+			float x = static_cast<float>(atof(verts[vertIndex - 3].c_str()));
+			float y = static_cast<float>(atof(verts[vertIndex - 2].c_str()));
+			float z = static_cast<float>(atof(verts[vertIndex - 1].c_str()));
+			parsedVerts.push_back(Vec3(x, y, z));
+			vertIndex += 2;
+		}
+	}
+
+	//Transform all verts to the matrix
+	for (int vertIndex = 0; vertIndex < parsedVerts.size(); vertIndex++)
+	{
+		parsedVerts[vertIndex] = transform.TransformPosition3D(parsedVerts[vertIndex]);
+	}
+
+	//Compute center of mass
+	for (int particleIndex = 0; particleIndex < parsedVerts.size(); particleIndex++)
+	{
+		rigidBody->m_position += parsedVerts[particleIndex];
+	}
+	rigidBody->m_position = rigidBody->m_position / float(parsedVerts.size());
+
+	//Assign particles/edged/faces to local space and accumulate mass
+	for (int particleIndex = 0; particleIndex < parsedVerts.size(); particleIndex++)
+	{
+		parsedVerts[particleIndex] -= rigidBody->m_position;
+	}
+
+	rigidBody->m_collider->m_hull = new ConvexHull3D(parsedVerts);
+	rigidBody->m_collider->GenerateBoundingSphereRadius();
 }

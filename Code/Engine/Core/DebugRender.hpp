@@ -10,6 +10,7 @@ struct	Vec3;
 struct	Vec2;
 struct	Mat44;
 struct	AABB3;
+struct	ConvexPoly3D;
 
 //-----------------------------------------------------------------------------------------------
 enum class DebugRenderMode
@@ -43,6 +44,8 @@ void DebugRenderScreen(const Camera& camera);
 void DebugRenderEndFrame();
 
 //Geometry
+void DebugAddWorldConvexPoly3D(const ConvexPoly3D& poly, float duration, const Rgba8 startColor = Rgba8::WHITE, const Rgba8 endColor = Rgba8::WHITE, DebugRenderMode mode = DebugRenderMode::USE_DEPTH);
+void DebugAddWorldWireConvexPoly3D(const ConvexPoly3D& poly, float duration, const Rgba8 startColor = Rgba8::WHITE, const Rgba8 endColor = Rgba8::WHITE, DebugRenderMode mode = DebugRenderMode::USE_DEPTH);
 void DebugAddWorldPoint(const Vec3& pos, float radius, float duration, const Rgba8 startColor = Rgba8::WHITE, const Rgba8 endColor = Rgba8::WHITE, DebugRenderMode mode = DebugRenderMode::USE_DEPTH);
 void DebugAddWorldLine(const Vec3& start, const Vec3& end, float radius, float duration, const Rgba8 startColor = Rgba8::WHITE, const Rgba8 endColor = Rgba8::WHITE, DebugRenderMode mode = DebugRenderMode::USE_DEPTH);
 void DebugAddWorldWireCylinder(const Vec3& base, const Vec3& top, float radius, float duration, const Rgba8 startColor = Rgba8::WHITE, const Rgba8 endColor = Rgba8::WHITE, DebugRenderMode mode = DebugRenderMode::USE_DEPTH);

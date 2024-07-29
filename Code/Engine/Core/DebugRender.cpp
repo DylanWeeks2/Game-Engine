@@ -46,6 +46,7 @@ public:
 	Rgba8 m_endColor = Rgba8::WHITE;
 	Rgba8 m_currentColor = Rgba8::WHITE;
 	bool m_isWireFrame = false;
+	bool m_isLineList = false;
 	bool m_isGarbage = false;
 	bool m_isText = false;
 	bool m_isBillboard = false;
@@ -175,9 +176,18 @@ void DebugRenderEntity::Render() const
 	}
 	else
 	{
-		s_debugRenderer->m_config.m_renderer->BindTexture(nullptr);
-		s_debugRenderer->m_config.m_renderer->SetModelConstants(GetModelMatrix(), m_currentColor);
-		s_debugRenderer->m_config.m_renderer->DrawVertexArray(static_cast<int>(verts.size()), verts.data());
+		if (m_isLineList == true)
+		{
+			s_debugRenderer->m_config.m_renderer->BindTexture(nullptr);
+			s_debugRenderer->m_config.m_renderer->SetModelConstants(GetModelMatrix(), m_currentColor);
+			s_debugRenderer->m_config.m_renderer->DrawVertexArray(static_cast<int>(verts.size()), verts.data(), PrimitiveTopology::D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		}
+		else
+		{
+			s_debugRenderer->m_config.m_renderer->BindTexture(nullptr);
+			s_debugRenderer->m_config.m_renderer->SetModelConstants(GetModelMatrix(), m_currentColor);
+			s_debugRenderer->m_config.m_renderer->DrawVertexArray(static_cast<int>(verts.size()), verts.data());
+		}
 	}
 }
 
@@ -544,6 +554,27 @@ void DebugRenderScreen(const Camera& camera)
 void DebugRenderEndFrame()
 {
 	s_debugRenderer->EndFrame();
+}
+
+//-----------------------------------------------------------------------------------------------
+void DebugAddWorldConvexPoly3D(const ConvexPoly3D& poly, float duration, const Rgba8 startColor, const Rgba8 endColor, DebugRenderMode mode)
+{
+	DebugRenderEntity* entity = new DebugRenderEntity(duration, startColor, endColor, mode);
+	AddVertsForConvexPoly3D(entity->m_vertexes, poly);
+	s_debugRenderer->m_debugRenderMutex.lock();
+	s_debugRenderer->m_worldEntities.push_back(entity);
+	s_debugRenderer->m_debugRenderMutex.unlock();
+}
+
+//-----------------------------------------------------------------------------------------------
+void DebugAddWorldWireConvexPoly3D(const ConvexPoly3D& poly, float duration, const Rgba8 startColor, const Rgba8 endColor, DebugRenderMode mode)
+{
+	DebugRenderEntity* entity = new DebugRenderEntity(duration, startColor, endColor, mode);
+	entity->m_isLineList = true;
+	AddVertsForWireConvexPoly3D(entity->m_vertexes, poly);
+	s_debugRenderer->m_debugRenderMutex.lock();
+	s_debugRenderer->m_worldEntities.push_back(entity);
+	s_debugRenderer->m_debugRenderMutex.unlock();
 }
 
 //-----------------------------------------------------------------------------------------------

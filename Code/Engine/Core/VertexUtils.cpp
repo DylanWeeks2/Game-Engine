@@ -23,7 +23,9 @@
 #include "Engine/Math/Capsule3.hpp"
 #include "Engine/Math/DPCapsule3.hpp"
 #include "Engine/Math/ConvexPoly2D.hpp"
+#include "Engine/Math/ConvexPoly3D.hpp"
 #include "Engine/Math/DoubleRange.hpp"
+#include "Engine/Math/ConvexHull3D.hpp"
 
 //-----------------------------------------------------------------------------------------------
 void TransformVertexArrayXY3D(int numVerts, Vertex_PCU* verts, float uniformScaleXY, float rotationDegreesAboutZ, Vec2 const& translationXY)
@@ -1482,11 +1484,11 @@ void AddVertsForArrow3D(std::vector<Vertex_PCU>& verts, Vec3 tailPos, Vec3 tipPo
 	}
 	Vec3 kBasis = CrossProduct3D(iBasis, jBasis).GetNormalized();
 	float distance = (tipPos - tailPos).GetLength();
-	FloatRange cylinderRange = FloatRange(RangeMap(0.75f, 0.0f, 1.0f, 0.0f, distance), 0.0f);
-	FloatRange coneRange = FloatRange(distance, RangeMap(0.75f, 0.0f, 1.0f, 0.0f, distance));
+	FloatRange cylinderRange = FloatRange(RangeMap(0.85f, 0.0f, 1.0f, 0.0f, distance), 0.0f);
+	FloatRange coneRange = FloatRange(distance, RangeMap(0.85f, 0.0f, 1.0f, 0.0f, distance));
 	int startVertPos = static_cast<int>(verts.size());
 	AddVertsForCylinderZ3D(verts, Vec2(0.0f, 0.0f), cylinderRange, lineThickness * 0.5f, 8, tint);
-	AddVertsForConeZ3D(verts, Vec2(0.0f, 0.0f), coneRange, lineThickness * 0.8f, 8, tint);
+	AddVertsForConeZ3D(verts, Vec2(0.0f, 0.0f), coneRange, lineThickness, 8, tint);
 	int endVertPos = static_cast<int>(verts.size()) - 1;
 	std::vector<Vertex_PCU> tempVerts(verts.begin() + startVertPos, verts.begin() + endVertPos + 1);
 
@@ -1908,6 +1910,38 @@ void AddVertsForConvexPoly2D(std::vector<Vertex_PCU>& verts, ConvexPoly2D const&
 }
 
 //-----------------------------------------------------------------------------------------------
+void AddVertsForConvexPoly3D(std::vector<Vertex_PCU>& verts, ConvexPoly3D const& convexPoly, Rgba8 const& color)
+{
+	for (int pointIndex = 1; pointIndex < convexPoly.m_ccwOrderedPoints.size() - 1; pointIndex++)
+	{
+		verts.push_back(Vertex_PCU(convexPoly.m_ccwOrderedPoints[0], color, Vec2()));
+		verts.push_back(Vertex_PCU(convexPoly.m_ccwOrderedPoints[pointIndex], color, Vec2()));
+		verts.push_back(Vertex_PCU(convexPoly.m_ccwOrderedPoints[pointIndex + 1], color, Vec2()));
+	}
+}
+
+//-----------------------------------------------------------------------------------------------
+void AddVertsForWireConvexPoly3D(std::vector<Vertex_PCU>& verts, ConvexPoly3D const& convexPoly, Rgba8 const& color)
+{
+	for (int pointIndex = 0; pointIndex < convexPoly.m_ccwOrderedPoints.size(); pointIndex++)
+	{
+		if (pointIndex != convexPoly.m_ccwOrderedPoints.size() - 1)
+			AddVertsForLineList(verts, convexPoly.m_ccwOrderedPoints[pointIndex], convexPoly.m_ccwOrderedPoints[pointIndex + 1], color);
+		else
+			AddVertsForLineList(verts, convexPoly.m_ccwOrderedPoints[pointIndex], convexPoly.m_ccwOrderedPoints[0], color);
+	}
+}
+
+//-----------------------------------------------------------------------------------------------
+void AddVertsForWireConvexHull3D(std::vector<Vertex_PCU>& verts, ConvexHull3D const& convexHull, Rgba8 const& color)
+{
+	for (int index = 0; index < convexHull.m_boundingPolys.size(); index++)
+	{
+		AddVertsForWireConvexPoly3D(verts, convexHull.m_boundingPolys[index], color);
+	}
+}
+
+//-----------------------------------------------------------------------------------------------
 void CalculateTangentSpaceVectors(std::vector<Vertex_PCUTBN>& verts, std::vector<unsigned int>& indexes)
 {
 	bool calculateTangentSpace = false;
@@ -1954,7 +1988,7 @@ void CalculateTangentSpaceVectors(std::vector<Vertex_PCUTBN>& verts, std::vector
 
 			verts[vertIndex].m_tangent = tangentSpaceMatrix.GetIBasis3D();
 			verts[vertIndex].m_binormal = tangentSpaceMatrix.GetJBasis3D();
-			//verts[vertIndex].m_normal = tangentSpaceMatrix.GetKBasis3D();
+			verts[vertIndex].m_normal = tangentSpaceMatrix.GetKBasis3D();
 		}
 	}
 }

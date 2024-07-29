@@ -23,6 +23,8 @@ struct	DPMat44;
 struct	FloatRange;
 struct	DoubleRange;
 struct	ConvexPoly2D;
+struct	ConvexPoly3D;
+struct	ConvexHull3D;
 
 //-----------------------------------------------------------------------------------------------
 void	TransformVertexArrayXY3D(int numVerts, Vertex_PCU* verts, float uniformScaleXY, float rotationDegreesAboutZ, Vec2 const& translationXY);
@@ -91,5 +93,8 @@ void	AddVertsForLineList(std::vector<Vertex_PCUTBN>& verts, Vec3 const& p1, Vec3
 void	AddVertsForLineList(std::vector<Vertex_PCU>& verts, Vec3 const& p1, Vec3 const& p2, Rgba8 const& color = Rgba8::WHITE);
 void	AddVertsForLineList2D(std::vector<Vertex_PCU>& verts, Vec2 const& p1, Vec2 const& p2, Rgba8 const& color = Rgba8::WHITE);
 void	AddVertsForConvexPoly2D(std::vector<Vertex_PCU>& verts, ConvexPoly2D const& convexPoly, Rgba8 const& color = Rgba8::WHITE);
+void	AddVertsForConvexPoly3D(std::vector<Vertex_PCU>& verts, ConvexPoly3D const& convexPoly, Rgba8 const& color = Rgba8::WHITE);
+void	AddVertsForWireConvexPoly3D(std::vector<Vertex_PCU>& verts, ConvexPoly3D const& convexPoly, Rgba8 const& color = Rgba8::WHITE);
+void	AddVertsForWireConvexHull3D(std::vector<Vertex_PCU>& verts, ConvexHull3D const& convexHull, Rgba8 const& color = Rgba8::WHITE);
 void	CalculateTangentSpaceVectors(std::vector<Vertex_PCUTBN>& verts, std::vector<unsigned int>& indexes);
 void	CalculateTangentSpaceVectors(std::vector<Vertex_PCUTBN>& verts);
