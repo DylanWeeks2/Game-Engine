@@ -9,7 +9,7 @@
 //-----------------------------------------------------------------------------------------------
 struct Vertex_PCU;
 struct Spring2D;
-struct Point2D;
+struct Particle2D;
 
 //-----------------------------------------------------------------------------------------------
 struct Shapes2D
@@ -43,12 +43,12 @@ public:
 
 private:
 	void	ProjectConstraints();
-	void	ProjectDistanceConstraint(Point2D* pointA, Point2D* pointB);
-	void	ProjectBendingConstraint(Point2D* pointA, Point2D* pointC);
-	void	ProjectCollisionConstraints(Point2D* point);
+	void	ProjectDistanceConstraint(Particle2D* particleA, Particle2D* particleB);
+	void	ProjectBendingConstraint(Particle2D* particleA, Particle2D* particleC);
+	void	ProjectCollisionConstraints(Particle2D* particle);
 
 public:
-	std::vector<Point2D*>	m_points;
+	std::vector<Particle2D*>	m_particles;
 	Shapes2D*				m_shapes = nullptr;
 	std::vector<Capsule2>	m_selfCollisionCapsules;
 	float					m_physicsTimestep = 0.0005f;

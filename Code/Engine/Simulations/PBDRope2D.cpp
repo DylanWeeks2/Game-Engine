@@ -4,7 +4,7 @@
 #include "Engine/Math/LineSegment2.hpp"
 #include "Engine/Core/ErrorWarningAssert.hpp"
 #include "Engine/Simulations/Spring2D.hpp"
-#include "Engine/Simulations/Point2D.hpp"
+#include "Engine/Simulations/Particle2D.hpp"
 #include "Engine/Core/EngineCommon.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Math/MathUtils.hpp"
@@ -36,31 +36,31 @@ PBDRope2D::PBDRope2D(int totalPoints, float totalMassOfRope, float dampingCoeffi
 	m_bendingConstraintDistance = m_desiredDistance * (2.0f);
 	float massPerPoint = (totalMassOfRope / totalPoints);
 	float inverseMassPerPoint = 1.0f / massPerPoint;
-	Point2D* pointA = nullptr;
-	Point2D* pointB = nullptr;
-	for (int pointIndex = 0; pointIndex < totalPoints; pointIndex++)
+	Particle2D* particleA = nullptr;
+	Particle2D* particleB = nullptr;
+	for (int particleIndex = 0; particleIndex < totalPoints; particleIndex++)
 	{	
-		if (pointIndex == 0)
+		if (particleIndex == 0)
 		{
 			continue;
 		}
-		else if (pointIndex == 1)
+		else if (particleIndex == 1)
 		{
-			pointA = new Point2D(massPerPoint, inverseMassPerPoint, start +
-				(direction * ((pointIndex - 1) * m_desiredDistance)), Vec2(), true);
-			m_points.push_back(pointA);
+			particleA = new Particle2D(massPerPoint, inverseMassPerPoint, start +
+				(direction * ((particleIndex - 1) * m_desiredDistance)), Vec2(), true);
+			m_particles.push_back(particleA);
 		}
 		else
 		{
-			pointA = pointB;
+			particleA = particleB;
 		}
 
-		pointB = new Point2D(massPerPoint, inverseMassPerPoint, start +
-			(direction * (pointIndex * m_desiredDistance)), Vec2());
-		m_points.push_back(pointB);
+		particleB = new Particle2D(massPerPoint, inverseMassPerPoint, start +
+			(direction * (particleIndex * m_desiredDistance)), Vec2());
+		m_particles.push_back(particleB);
 
 		Capsule2 capsule;
-		capsule.m_bone = LineSegment2(pointA->m_proposedPosition, pointB->m_proposedPosition);
+		capsule.m_bone = LineSegment2(particleA->m_proposedPosition, particleB->m_proposedPosition);
 		capsule.m_radius = m_ropeRadius;
 		capsule.m_inverseMass = 1.0f / (massPerPoint + massPerPoint);
 		m_selfCollisionCapsules.push_back(capsule);
@@ -77,23 +77,23 @@ PBDRope2D::PBDRope2D()
 //-----------------------------------------------------------------------------------------------
 PBDRope2D::~PBDRope2D()
 {
-	for (int pointIndex = 0; pointIndex < m_points.size(); pointIndex++)
+	for (int particleIndex = 0; particleIndex < m_particles.size(); particleIndex++)
 	{
-		Point2D* point = m_points[pointIndex];
-		if (point)
+		Particle2D* particle = m_particles[particleIndex];
+		if (particle)
 		{
-			delete point;
-			point = nullptr;
+			delete particle;
+			particle = nullptr;
 		}
 	}
 
-	for (int pointIndex = 0; pointIndex < m_points.size(); pointIndex++)
+	for (int particleIndex = 0; particleIndex < m_particles.size(); particleIndex++)
 	{
-		Point2D* point = m_points[pointIndex];
-		if (point)
+		Particle2D* particle = m_particles[particleIndex];
+		if (particle)
 		{
-			delete point;
-			point = nullptr;
+			delete particle;
+			particle = nullptr;
 		}
 	}
 }
@@ -116,9 +116,9 @@ void PBDRope2D::Update(float deltaSeconds)
 	while (m_physicsDebt > m_physicsTimestep)
 	{
 		//Loop to estimate new velocities, proposed positions, and generate collisions
-		for (int pointIndex = 0; pointIndex < m_points.size(); pointIndex++)
+		for (int particleIndex = 0; particleIndex < m_particles.size(); particleIndex++)
 		{
-			Point2D* currentPoint = m_points[pointIndex];
+			Particle2D* currentPoint = m_particles[particleIndex];
 			if (currentPoint->m_isLocked == true)
 			{
 				continue;
@@ -143,9 +143,9 @@ void PBDRope2D::Update(float deltaSeconds)
 		}
 
 		//Loop through and set projected positions and velocities
-		for (int pointIndex = 0; pointIndex < m_points.size(); pointIndex++)
+		for (int particleIndex = 0; particleIndex < m_particles.size(); particleIndex++)
 		{
-			Point2D* currentPoint = m_points[pointIndex];
+			Particle2D* currentPoint = m_particles[particleIndex];
 			currentPoint->m_velocity = (currentPoint->m_proposedPosition - currentPoint->m_position) / m_physicsTimestep;
 
 			if (currentPoint->m_forcesAsFloat != 0.0f)
@@ -166,20 +166,20 @@ void PBDRope2D::Update(float deltaSeconds)
 //-----------------------------------------------------------------------------------------------
 void PBDRope2D::Render(std::vector<Vertex_PCU>& verts) const
 {
-	verts.reserve((m_points.size() - 1) * size_t(6));
+	verts.reserve((m_particles.size() - 1) * size_t(6));
 	
 	std::vector<Vec2> positions;
-	positions.reserve(m_points.size());
-	for (int pointIndex = 0; pointIndex < m_points.size(); pointIndex++)
+	positions.reserve(m_particles.size());
+	for (int particleIndex = 0; particleIndex < m_particles.size(); particleIndex++)
 	{
-		positions.push_back(m_points[pointIndex]->m_position);
-		/*if (pointIndex == 0)
+		positions.push_back(m_particles[particleIndex]->m_position);
+		/*if (particleIndex == 0)
 		{
 			continue;
 		}*/
 
-		/*Point2D* previousPoint = m_points[pointIndex - 1];
-		Point2D* currentPoint = m_points[pointIndex];
+		/*Particle2D* previousPoint = m_particles[particleIndex - 1];
+		Particle2D* currentPoint = m_particles[particleIndex];
 		LineSegment2 line;
 		line.m_start = previousPoint->m_position;
 		line.m_end = currentPoint->m_position;
@@ -242,19 +242,19 @@ void PBDRope2D::Render(std::vector<Vertex_PCU>& verts) const
 float PBDRope2D::GetCurrentLengthOfTheRope()
 {
 	float currentLength = 0.0f;
-	for (int pointIndex = 0; pointIndex < m_points.size(); pointIndex++)
+	for (int particleIndex = 0; particleIndex < m_particles.size(); particleIndex++)
 	{
-		Point2D* pointA = nullptr;
-		Point2D* pointB = m_points[pointIndex];
+		Particle2D* particleA = nullptr;
+		Particle2D* particleB = m_particles[particleIndex];
 
-		if (pointIndex != 0)
+		if (particleIndex != 0)
 		{
-			pointA = m_points[pointIndex - 1];
+			particleA = m_particles[particleIndex - 1];
 		}
 
-		if (pointA)
+		if (particleA)
 		{
-			currentLength += (pointA->m_position - pointB->m_position).GetLength();
+			currentLength += (particleA->m_position - particleB->m_position).GetLength();
 		}
 	}
 	return currentLength;
@@ -273,47 +273,47 @@ void PBDRope2D::ClearShapeReferences()
 void PBDRope2D::ProjectConstraints()
 {	 
 	//Points to reference for ease of access
-	/*Point2D* pointStart = m_points[0];
-	Point2D* pointPreviousToEnd = m_points[m_points.size() - 2];
-	Point2D* pointEnd = m_points[m_points.size() - 1];*/
+	/*Particle2D* particleStart = m_particles[0];
+	Particle2D* particlePreviousToEnd = m_particles[m_particles.size() - 2];
+	Particle2D* particleEnd = m_particles[m_particles.size() - 1];*/
 
-	//Loop to project each constraint on each point
-	for (int pointIndex = 0; pointIndex < m_points.size(); pointIndex++)
+	//Loop to project each constraint on each particle
+	for (int particleIndex = 0; particleIndex < m_particles.size(); particleIndex++)
 	{
-		Point2D* pointA = nullptr;
-		Point2D* pointB = m_points[pointIndex];
-		Point2D* pointC = nullptr;
+		Particle2D* particleA = nullptr;
+		Particle2D* particleB = m_particles[particleIndex];
+		Particle2D* particleC = nullptr;
 		
-		if (pointIndex != 0)
+		if (particleIndex != 0)
 		{
-			pointA = m_points[pointIndex - 1];
+			particleA = m_particles[particleIndex - 1];
 		}
-		if (pointIndex != int(m_points.size() - 1))
+		if (particleIndex != int(m_particles.size() - 1))
 		{
-			pointC = m_points[pointIndex + 1];
+			particleC = m_particles[particleIndex + 1];
 		}
 
 		//Constraints Projection
-		if (pointB->m_isLocked == false)
+		if (particleB->m_isLocked == false)
 		{
-			ProjectCollisionConstraints(pointB);
+			ProjectCollisionConstraints(particleB);
 		}
-		if (pointA)
+		if (particleA)
 		{
-			ProjectDistanceConstraint(pointA, pointB);
+			ProjectDistanceConstraint(particleA, particleB);
 		}
-		if (pointA && pointC)
+		if (particleA && particleC)
 		{
-			ProjectBendingConstraint(pointA, pointC);
+			ProjectBendingConstraint(particleA, particleC);
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------------------------
-void PBDRope2D::ProjectDistanceConstraint(Point2D* pointA, Point2D* pointB)
+void PBDRope2D::ProjectDistanceConstraint(Particle2D* particleA, Particle2D* particleB)
 {
 	//Calculates direction and overflow along with weight Coefficients
-	Vec2 displacement = pointB->m_proposedPosition - pointA->m_proposedPosition;
+	Vec2 displacement = particleB->m_proposedPosition - particleA->m_proposedPosition;
 	float distanceConstraint = (displacement.GetLength() - m_desiredDistance);
 
 	if (distanceConstraint == 0)
@@ -323,34 +323,34 @@ void PBDRope2D::ProjectDistanceConstraint(Point2D* pointA, Point2D* pointB)
 
 	Vec2 gradient = displacement.GetNormalized();
 
-	if (pointA->m_isLocked == false && pointB->m_isLocked == false)
+	if (particleA->m_isLocked == false && particleB->m_isLocked == false)
 	{
-		float pointAWeightCoefficient = (pointA->m_inverseMass / (pointA->m_inverseMass + pointB->m_inverseMass));
-		float pointBWeightCoefficient = (pointB->m_inverseMass / (pointA->m_inverseMass + pointB->m_inverseMass));
+		float particleAWeightCoefficient = (particleA->m_inverseMass / (particleA->m_inverseMass + particleB->m_inverseMass));
+		float particleBWeightCoefficient = (particleB->m_inverseMass / (particleA->m_inverseMass + particleB->m_inverseMass));
 
-		Vec2 deltaPointA = pointAWeightCoefficient * distanceConstraint * gradient;
-		Vec2 deltaPointB = pointBWeightCoefficient * distanceConstraint * gradient;
+		Vec2 deltaPointA = particleAWeightCoefficient * distanceConstraint * gradient;
+		Vec2 deltaPointB = particleBWeightCoefficient * distanceConstraint * gradient;
 
-		pointA->m_proposedPosition += deltaPointA * m_stretchingCoefficient;
-		pointB->m_proposedPosition -= deltaPointB * m_stretchingCoefficient;
+		particleA->m_proposedPosition += deltaPointA * m_stretchingCoefficient;
+		particleB->m_proposedPosition -= deltaPointB * m_stretchingCoefficient;
 	}
-	else if (pointA->m_isLocked == true && pointB->m_isLocked == false)
+	else if (particleA->m_isLocked == true && particleB->m_isLocked == false)
 	{
 		Vec2 deltaPointB = distanceConstraint * gradient;
-		pointB->m_proposedPosition -= deltaPointB * m_stretchingCoefficient;
+		particleB->m_proposedPosition -= deltaPointB * m_stretchingCoefficient;
 	}
-	else if (pointA->m_isLocked == false && pointB->m_isLocked == true)
+	else if (particleA->m_isLocked == false && particleB->m_isLocked == true)
 	{
 		Vec2 deltaPointA = distanceConstraint * gradient;
-		pointA->m_proposedPosition += deltaPointA * m_stretchingCoefficient;
+		particleA->m_proposedPosition += deltaPointA * m_stretchingCoefficient;
 	}
 }
 
 //-----------------------------------------------------------------------------------------------
-void PBDRope2D::ProjectBendingConstraint(Point2D* pointA, Point2D* pointC)
+void PBDRope2D::ProjectBendingConstraint(Particle2D* particleA, Particle2D* particleC)
 {
 	//Calculates direction and overflow along with weight Coefficients
-	Vec2 displacement = pointC->m_proposedPosition - pointA->m_proposedPosition;
+	Vec2 displacement = particleC->m_proposedPosition - particleA->m_proposedPosition;
 	float distanceConstraint = displacement.GetLength() - m_bendingConstraintDistance;
 	
 	//Check if less than the minimum distance, if so no need to constrain
@@ -361,41 +361,41 @@ void PBDRope2D::ProjectBendingConstraint(Point2D* pointA, Point2D* pointC)
 
 	Vec2 gradient = displacement.GetNormalized();
 
-	if (pointA->m_isLocked == false && pointC->m_isLocked == false)
+	if (particleA->m_isLocked == false && particleC->m_isLocked == false)
 	{
-		float pointAWeightCoefficient = (pointA->m_inverseMass / (pointA->m_inverseMass + pointC->m_inverseMass));
-		float pointCWeightCoefficient = (pointC->m_inverseMass / (pointA->m_inverseMass + pointC->m_inverseMass));
+		float particleAWeightCoefficient = (particleA->m_inverseMass / (particleA->m_inverseMass + particleC->m_inverseMass));
+		float particleCWeightCoefficient = (particleC->m_inverseMass / (particleA->m_inverseMass + particleC->m_inverseMass));
 
-		Vec2 deltaPointA = m_bendingCoefficient * pointAWeightCoefficient * distanceConstraint * gradient;
-		Vec2 deltaPointC = m_bendingCoefficient * pointCWeightCoefficient * distanceConstraint * gradient;
+		Vec2 deltaPointA = m_bendingCoefficient * particleAWeightCoefficient * distanceConstraint * gradient;
+		Vec2 deltaPointC = m_bendingCoefficient * particleCWeightCoefficient * distanceConstraint * gradient;
 
-		pointA->m_proposedPosition += deltaPointA;
-		pointC->m_proposedPosition -= deltaPointC;
+		particleA->m_proposedPosition += deltaPointA;
+		particleC->m_proposedPosition -= deltaPointC;
 	}
-	else if (pointA->m_isLocked == true && pointC->m_isLocked == false)
+	else if (particleA->m_isLocked == true && particleC->m_isLocked == false)
 	{
 		Vec2 deltaPointC = m_bendingCoefficient * distanceConstraint * gradient;
-		pointC->m_proposedPosition -= deltaPointC;
+		particleC->m_proposedPosition -= deltaPointC;
 	}
-	else if (pointA->m_isLocked == false && pointC->m_isLocked == true)
+	else if (particleA->m_isLocked == false && particleC->m_isLocked == true)
 	{
 		Vec2 deltaPointA = m_bendingCoefficient * distanceConstraint * gradient;
-		pointA->m_proposedPosition += deltaPointA;
+		particleA->m_proposedPosition += deltaPointA;
 	}
 }
 
 //-----------------------------------------------------------------------------------------------
-void PBDRope2D::ProjectCollisionConstraints(Point2D* point)
+void PBDRope2D::ProjectCollisionConstraints(Particle2D* particle)
 {
 	//Floor Collisions
-	if (point->m_proposedPosition.y < m_ropeRadius)
+	if (particle->m_proposedPosition.y < m_ropeRadius)
 	{
-		point->m_proposedPosition.y = m_ropeRadius;
+		particle->m_proposedPosition.y = m_ropeRadius;
 
-		if (point->m_velocity != Vec2())
+		if (particle->m_velocity != Vec2())
 		{
-			float normalForce = point->m_mass * m_gravityCoefficient;
-			point->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
+			float normalForce = particle->m_mass * m_gravityCoefficient;
+			particle->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
 		}
 	}
 
@@ -403,12 +403,12 @@ void PBDRope2D::ProjectCollisionConstraints(Point2D* point)
 	for (int discIndex = 0; discIndex < m_shapes->m_discs.size(); discIndex++)
 	{
 		Disc2& disc = m_shapes->m_discs[discIndex];
-		if (PushDiscOutOfFixedDisc2D(point->m_proposedPosition, m_ropeRadius, disc.m_center, disc.m_radius))
+		if (PushDiscOutOfFixedDisc2D(particle->m_proposedPosition, m_ropeRadius, disc.m_center, disc.m_radius))
 		{
-			if (point->m_velocity != Vec2())
+			if (particle->m_velocity != Vec2())
 			{
-				float normalForce = point->m_mass * m_gravityCoefficient;
-				point->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
+				float normalForce = particle->m_mass * m_gravityCoefficient;
+				particle->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
 			}
 		}
 	}
@@ -417,12 +417,12 @@ void PBDRope2D::ProjectCollisionConstraints(Point2D* point)
 	for (int aabbIndex = 0; aabbIndex < m_shapes->m_aabbs.size(); aabbIndex++)
 	{
 		AABB2& aabb = m_shapes->m_aabbs[aabbIndex];
-		if (PushDiscOutOfFixedAABB2D(point->m_proposedPosition, m_ropeRadius, aabb))
+		if (PushDiscOutOfFixedAABB2D(particle->m_proposedPosition, m_ropeRadius, aabb))
 		{
-			if (point->m_velocity != Vec2())
+			if (particle->m_velocity != Vec2())
 			{
-				float normalForce = point->m_mass * m_gravityCoefficient;
-				point->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
+				float normalForce = particle->m_mass * m_gravityCoefficient;
+				particle->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
 			}
 		}
 	}
@@ -431,12 +431,12 @@ void PBDRope2D::ProjectCollisionConstraints(Point2D* point)
 	for (int obbIndex = 0; obbIndex < m_shapes->m_obbs.size(); obbIndex++)
 	{
 		OBB2& obb = m_shapes->m_obbs[obbIndex];
-		if (PushDiscOutOfFixedOBB2D(point->m_proposedPosition, m_ropeRadius, obb))
+		if (PushDiscOutOfFixedOBB2D(particle->m_proposedPosition, m_ropeRadius, obb))
 		{
-			if (point->m_velocity != Vec2())
+			if (particle->m_velocity != Vec2())
 			{
-				float normalForce = point->m_mass * m_gravityCoefficient;
-				point->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
+				float normalForce = particle->m_mass * m_gravityCoefficient;
+				particle->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
 			}
 		}
 	}
@@ -445,39 +445,39 @@ void PBDRope2D::ProjectCollisionConstraints(Point2D* point)
 	for (int capsuleIndex = 0; capsuleIndex < m_shapes->m_capsules.size(); capsuleIndex++)
 	{
 		Capsule2& capsule = m_shapes->m_capsules[capsuleIndex];
-		if (PushDiscOutOfFixedCapsule2D(point->m_proposedPosition, m_ropeRadius, capsule))
+		if (PushDiscOutOfFixedCapsule2D(particle->m_proposedPosition, m_ropeRadius, capsule))
 		{
-			if (point->m_velocity != Vec2())
+			if (particle->m_velocity != Vec2())
 			{
-				float normalForce = point->m_mass * m_gravityCoefficient;
-				point->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
+				float normalForce = particle->m_mass * m_gravityCoefficient;
+				particle->m_forcesAsFloat += m_kineticFrictionCoefficient * normalForce;
 			}
 		}
 	}
 
 	//SELF COLLISIONS
 	/*int capsuleIndex = 0;
-	for (int pointIndex = 0; pointIndex < m_numberOfPointsInRope; pointIndex++)
+	for (int particleIndex = 0; particleIndex < m_numberOfPointsInRope; particleIndex++)
 	{
-		if (pointIndex == 0)
+		if (particleIndex == 0)
 		{
 			continue;
 		}
 
-		Point2D* pointA = m_points[pointIndex - 1];
-		Point2D* pointB = m_points[pointIndex];
+		Particle2D* particleA = m_particles[particleIndex - 1];
+		Particle2D* particleB = m_particles[particleIndex];
 
-		if (point == pointA || point == pointB)
+		if (particle == particleA || particle == particleB)
 		{
 			continue;
 		}
 
 		Capsule2& capsule = m_selfCollisionCapsules[capsuleIndex];
-		capsule.m_bone.m_start = pointA->m_proposedPosition;
-		capsule.m_bone.m_end = pointB->m_proposedPosition;
-		PushDiscOutOfMobileCapsule2D(point->m_proposedPosition, m_ropeRadius, point->m_inverseMass, capsule);
-		pointA->m_proposedPosition = capsule.m_bone.m_start;
-		pointB->m_proposedPosition = capsule.m_bone.m_end;
+		capsule.m_bone.m_start = particleA->m_proposedPosition;
+		capsule.m_bone.m_end = particleB->m_proposedPosition;
+		PushDiscOutOfMobileCapsule2D(particle->m_proposedPosition, m_ropeRadius, particle->m_inverseMass, capsule);
+		particleA->m_proposedPosition = capsule.m_bone.m_start;
+		particleB->m_proposedPosition = capsule.m_bone.m_end;
 		capsuleIndex++;
 	}*/
 }

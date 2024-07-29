@@ -171,13 +171,13 @@ struct GameStructuredBufferVariables
 class RopeSimulation3D
 {
 public:
+	RopeSimulation3D() {};
+	~RopeSimulation3D();
 	explicit	RopeSimulation3D(Renderer* renderer, AABB3 worldBounds, int totalParticles, float totalMassOfRope, float dampingCoefficient,
 				float stretchCoefficient, float compressionCoefficient, float bendingCoefficient, float staticFrictionCoefficient,
 				float kineticFrictionCoefficient, int totalSolverIterations, Vec3 start, Vec3 end, float physicsTimestep,
 				CollisionType collisionType, bool isSelfCollisionEnabled, int totalCollisionObjects, int totalAABBs, int totalOBBs, int totalCylinders,
 				int totalCapsules, int totalSpheres);
-	RopeSimulation3D(){};
-	~RopeSimulation3D();
 	void		Startup();
 	void		Shutdown();
 
