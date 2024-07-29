@@ -22,12 +22,12 @@ This game engine contains the following systems:
 
 
 ### **2D/3D Math and Physics Library**  
-The math and physics library supports the following features:  
-- Collisions and raycasts for AABBs, OBBs, capsules, discs, spheres, and lines
+The math and physics library supports the following features:
+- Physics simulations for 3D rigid body dynamics and particle-based Position Based Dynamics
+- Collisions detections for any convex polygon or polyhedron (SAT, GJK, and EPA)
 - Spatial partitioning algorithms for BVH, bit-buckets, and quad trees
-- Raycasts for AABBs, OBBs, capsules, cylinders, discs, spheres, lines, planes, and any convex hull
+- Raycasts for AABBs, OBBs, capsules, cylinders, discs, spheres, lines, planes, and convex hulls
 - General math utilities for dot product, cross product, projected lengths, easing functions, splines, interpolation, etc.
-- Physics simulations for Position Based Dynamics and a Mass-Spring System
 
 
 
