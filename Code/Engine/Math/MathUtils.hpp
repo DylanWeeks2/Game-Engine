@@ -4,6 +4,7 @@
 #include "DPVec3.hpp"
 #include <vector>
 #include <Engine/Math/ConvexHull2D.hpp>
+#include <Engine/Math/ConvexHull3D.hpp>
 
 //-----------------------------------------------------------------------------------------------
 enum class BillboardType
@@ -66,8 +67,10 @@ struct AABB3;
 struct DPAABB3;
 struct Plane2D;
 struct Plane3D;
+struct ConvexPoly2D;
 struct ConvexHull2D;
 struct DPVec2;
+class  RigidBody3D;
 
 //-----------------------------------------------------------------------------------------------
 //Clamp and Lerp
@@ -109,6 +112,7 @@ float				DotProduct4D(Vec4 const& a, Vec4 const& b);
 float				CrossProduct2D(Vec2 const& a, Vec2 const& b);
 Vec3				CrossProduct3D(Vec3 const& a, Vec3 const& b);
 DPVec3				CrossProduct3D(DPVec3 const& a, DPVec3 const& b);
+Vec3				TripleProduct3D(Vec3 const& a, Vec3 const& b, Vec3 const& c);
 
 //-----------------------------------------------------------------------------------------------
 //Basic 2D and 3D utilities
@@ -163,6 +167,7 @@ Vec3				GetNearestPointOnCapsule3D(Vec3 const& referencePosition, Capsule3 const
 DPVec3				GetNearestPointOnCapsule3D(DPVec3 const& referencePosition, DPCapsule3 const& capsule);
 Vec3				GetNearestPointOnCylinderZ3D(Vec3 const& referencePosition, Cylinder3 const& cylinder);
 DPVec3				GetNearestPointOnCylinderZ3D(DPVec3 const& referencePosition, DPCylinder3 const& cylinder);
+Vec3				GetNearestPointOnPlane3D(Vec3 const& referencePosition, Plane3D const& plane);
 bool				PushDiscOutOfFixedPoint2D(Vec2& mobileDiscCenter, float discRadius, Vec2 const& fixedPoint);
 bool				PushDiscOutOfFixedDisc2D(Vec2& mobileDiscCenter, float mobileDiscRadius, Vec2 const& fixedDiscCenter, float fixedDiscRadius);
 bool				PushDiscOutOfFixedDisc2D(DPVec2& mobileDiscCenter, double mobileDiscRadius, DPVec2 const& fixedDiscCenter, double fixedDiscRadius);
@@ -214,6 +219,14 @@ RaycastResult2D		RaycastVsPlane2D(Vec2 startPos, Vec2 fwdNormal, float maxDist, 
 RaycastResult2D		RaycastVsConvexHull2D(Vec2 startPos, Vec2 fwdNormal, float maxDist, ConvexHull2D& convexHull);
 RaycastResult3D		RaycastVsPlane3D(Vec3 startPos, Vec3 fwdNormal, float maxDist, Plane3D& plane);
 RaycastResult3D		RaycastVsAABB3D(Vec3 startPos, Vec3 fwdNormal, float maxDist, AABB3 const& aabb);
+bool				IsLineCollinearWithPlane3D(LineSegment3 const& line, Plane3D const& plane);
+ConvexHull3D		GetMinkowskiDifference(RigidBody3D* a, RigidBody3D* b);
+float				GetDistanceToLineSegment3D(Vec3 const& referencePoint, LineSegment3 const& line);
+float				GetDistanceToLineSegmentSquared3D(Vec3 const& referencePoint, LineSegment3 const& line);
+bool				GJK3D(RigidBody3D* a, RigidBody3D* b);
+Vec3				GJK3DSupportFunciton(RigidBody3D* a, RigidBody3D* b, Vec3 const& direction);
+ConvexPoly2D		GetClippedPolygon2D(ConvexPoly2D const& referencePoly, ConvexPoly2D const& incidentPolygon);
+ConvexPoly2D		GetClippedPolygon2D(ConvexHull2D const& referenceHull, ConvexPoly2D const& incidentPolygon);
 
 //-----------------------------------------------------------------------------------------------
 //Transform utilities

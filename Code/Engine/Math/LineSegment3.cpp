@@ -20,3 +20,27 @@ LineSegment3::LineSegment3(Vec3 const& start, Vec3 const& end)
 	, m_end(end)
 {
 }
+
+//-----------------------------------------------------------------------------------------------
+bool LineSegment3::operator!=(LineSegment3& compareLine)
+{
+	if ((m_start != compareLine.m_start && m_start != compareLine.m_end)
+		|| (m_end != compareLine.m_end && m_end != compareLine.m_start))
+	{
+		return true;
+	}
+	
+	return false;
+}
+
+//-----------------------------------------------------------------------------------------------
+bool LineSegment3::operator==(LineSegment3& compareLine)
+{
+	if ((m_start == compareLine.m_start || m_start == compareLine.m_end)
+		&& (m_end == compareLine.m_end || m_end == compareLine.m_start))
+	{
+		return true;
+	}
+
+	return false;
+}

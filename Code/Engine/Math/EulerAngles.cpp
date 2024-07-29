@@ -1,6 +1,7 @@
 #include "EulerAngles.hpp"
 #include "Vec3.hpp"
 #include "Mat44.hpp"
+#include "Mat33.hpp"
 #include "MathUtils.hpp"
 #include "Engine/Core/StringUtils.hpp"
 
@@ -64,6 +65,29 @@ Mat44 EulerAngles::GetAsMatrix_XFwd_YLeft_ZUp() const
 	/*returnMat.AppendZRotation(m_yawDegrees);
 	returnMat.AppendYRotation(m_pitchDegrees);
 	returnMat.AppendXRotation(m_rollDegrees);*/
+
+	//Optimized code
+	Vec3 out_forwardIBasis; Vec3 out_leftJBasis; Vec3 out_upKBasis;
+	out_forwardIBasis.x = CosDegrees(m_yawDegrees) * CosDegrees(m_pitchDegrees);
+	out_forwardIBasis.y = SinDegrees(m_yawDegrees) * CosDegrees(m_pitchDegrees);
+	out_forwardIBasis.z = -SinDegrees(m_pitchDegrees);
+
+	out_leftJBasis.x = (-SinDegrees(m_yawDegrees) * CosDegrees(m_rollDegrees)) + (CosDegrees(m_yawDegrees) * SinDegrees(m_pitchDegrees) * SinDegrees(m_rollDegrees));
+	out_leftJBasis.y = (CosDegrees(m_yawDegrees) * CosDegrees(m_rollDegrees)) + (SinDegrees(m_yawDegrees) * SinDegrees(m_pitchDegrees) * SinDegrees(m_rollDegrees));
+	out_leftJBasis.z = CosDegrees(m_pitchDegrees) * SinDegrees(m_rollDegrees);
+
+	out_upKBasis.x = (SinDegrees(m_yawDegrees) * SinDegrees(m_rollDegrees)) + (CosDegrees(m_yawDegrees) * SinDegrees(m_pitchDegrees) * CosDegrees(m_rollDegrees));
+	out_upKBasis.y = (CosDegrees(m_yawDegrees) * -SinDegrees(m_rollDegrees)) + (SinDegrees(m_yawDegrees) * SinDegrees(m_pitchDegrees) * CosDegrees(m_rollDegrees));
+	out_upKBasis.z = CosDegrees(m_pitchDegrees) * CosDegrees(m_rollDegrees);
+	returnMat.SetIJK3D(out_forwardIBasis, out_leftJBasis, out_upKBasis);
+
+	return returnMat;
+}
+
+//-----------------------------------------------------------------------------------------------
+Mat33 EulerAngles::GetAsMat33_XFwd_YLeft_ZUp() const
+{
+	Mat33 returnMat;
 
 	//Optimized code
 	Vec3 out_forwardIBasis; Vec3 out_leftJBasis; Vec3 out_upKBasis;

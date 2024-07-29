@@ -21,13 +21,18 @@
 #include "Cylinder3.hpp"
 #include "Plane2D.hpp"
 #include "Plane3D.hpp"
+#include "ConvexPoly2D.hpp"
 #include "ConvexHull2D.hpp"
+#include "ConvexHull3D.hpp"
+#include "RandomNumberGenerator.hpp"
 #include "Engine/Core/ErrorWarningAssert.hpp"
+#include "Engine/Core/DebugRender.hpp"
+#include "Engine/Simulations/RigidBody3D.hpp"
+#include "Engine/Simulations/Collider3D.hpp"
 #include <vector>
 #include <limits>
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include "Engine/Core/DebugRender.hpp"
 
 //-----------------------------------------------------------------------------------------------
 float ConvertDegreesToRadians(float degrees)
@@ -157,7 +162,12 @@ float GetAngleDegreesBetweenVectors2D(Vec2 const& a, Vec2 const& b)
 //-----------------------------------------------------------------------------------------------
 float GetAngleDegreesBetweenVectors3D(Vec3 const& a, Vec3 const& b)
 {
-	Vec3 newA = a / a.GetLength();
+	float aLength = a.GetLength();
+	if (aLength == 0.0f)
+	{
+		return 0.0f;
+	}
+	Vec3 newA = a / aLength;
 	Vec3 newB = b / b.GetLength();
 	float dot = DotProduct3D(newA, newB);
 	if (dot >= 1.0f)
@@ -214,6 +224,12 @@ Vec3 CrossProduct3D(Vec3 const& a, Vec3 const& b)
 DPVec3 CrossProduct3D(DPVec3 const& a, DPVec3 const& b)
 {
 	return DPVec3((a.y * b.z - a.z * b.y), (a.z * b.x - a.x * b.z), (a.x * b.y - a.y * b.x));
+}
+
+//-----------------------------------------------------------------------------------------------
+Vec3 TripleProduct3D(Vec3 const& a, Vec3 const& b, Vec3 const& c)
+{
+	return CrossProduct3D(CrossProduct3D(a, b), c).GetNormalized();
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -927,6 +943,15 @@ DPVec3 GetNearestPointOnCylinderZ3D(DPVec3 const& referencePosition, DPCylinder3
 		nearestPoint = DPVec3(nearestPointXY.x, nearestPointXY.y, referencePosition.z);
 	}
 	return nearestPoint;
+}
+
+
+//-----------------------------------------------------------------------------------------------
+Vec3 GetNearestPointOnPlane3D(Vec3 const& referencePosition, Plane3D const& plane)
+{
+	float alt = DotProduct3D(referencePosition, plane.m_normal) - plane.m_distanceFromOrigin;
+	alt *= -1.0f;
+	return referencePosition + plane.m_normal * alt;
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -3805,4 +3830,321 @@ RaycastResult3D RaycastVsAABB3D(Vec3 startPos, Vec3 fwdNormal, float maxDist, AA
 		}
 	}
 	return rayResult;
+}
+
+//-----------------------------------------------------------------------------------------------
+bool IsLineCollinearWithPlane3D(LineSegment3 const& line, Plane3D const& plane)
+{
+	Vec3 directionOfLine = (line.m_start - line.m_end);
+	float altitude = DotProduct3D(line.m_start, plane.m_normal) - plane.m_distanceFromOrigin;
+
+	//Check if perpendicular and altitude is 0
+	if (DotProduct3D(directionOfLine, plane.m_normal) <= 0.0001f 
+		&& DotProduct3D(directionOfLine, plane.m_normal) >= -0.0001f 
+		&& altitude <= 0.0001f && altitude >= -0.0001f)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+//-----------------------------------------------------------------------------------------------
+ConvexHull3D GetMinkowskiDifference(RigidBody3D* a, RigidBody3D* b)
+{
+	std::vector<Vec3> minkowskiVerts;
+	std::vector<Vec3> vertsA;
+	std::vector<Vec3> vertsB;
+	vertsA.reserve(a->m_collider->m_hull->m_boundingPoints.size());
+	vertsB.reserve(b->m_collider->m_hull->m_boundingPoints.size());
+
+	//Get Accurate world verts;
+	for (int vertIndex = 0; vertIndex < a->m_collider->m_hull->m_boundingPoints.size(); vertIndex++)
+	{
+		vertsA.push_back(a->m_rotation.TransformPosition3D(a->m_collider->m_hull->m_boundingPoints[vertIndex]) + a->m_position);
+	}
+	for (int vertIndex = 0; vertIndex < b->m_collider->m_hull->m_boundingPoints.size(); vertIndex++)
+	{
+		vertsB.push_back(b->m_rotation.TransformPosition3D(b->m_collider->m_hull->m_boundingPoints[vertIndex]) + b->m_position);
+	}
+
+	//Get differences between verts
+	for (int indexA = 0; indexA < vertsA.size(); indexA++)
+	{
+		for (int indexB = 0; indexB < vertsB.size(); indexB++)
+		{
+			minkowskiVerts.push_back(vertsA[indexA] - vertsB[indexB]);
+		}
+	}
+
+	ConvexHull3D convexHull(minkowskiVerts);
+	return convexHull;
+}
+
+//-----------------------------------------------------------------------------------------------
+float GetDistanceToLineSegment3D(Vec3 const& referencePoint, LineSegment3 const& line)
+{
+	Vec3 nearestPoint = GetNearestPointOnLineSegment3D(referencePoint, line);
+	return GetDistance3D(referencePoint, nearestPoint);
+}
+
+//-----------------------------------------------------------------------------------------------
+float GetDistanceToLineSegmentSquared3D(Vec3 const& referencePoint, LineSegment3 const& line)
+{
+	Vec3 nearestPoint = GetNearestPointOnLineSegment3D(referencePoint, line);
+	return GetDistanceSquared3D(referencePoint, nearestPoint);
+}
+
+//-----------------------------------------------------------------------------------------------
+bool GJK3D(RigidBody3D* a, RigidBody3D* b)
+{
+	Vec3 origin;
+	std::vector<Vec3> points;
+	Vec3 direction = (b->m_position - a->m_position).GetNormalized();
+	Vec3 point1 = GJK3DSupportFunciton(a, b, direction);
+	Vec3 point2 = GJK3DSupportFunciton(a, b, direction * -1.0f);
+	Vec3 line12 = point2 - point1;
+	Vec3 newDireciton = TripleProduct3D((line12), (point1 * -1.0f), (line12));
+	if (newDireciton == Vec3())
+	{
+		newDireciton = Vec3(CrossProduct3D((line12), (point1 * -1.0f)).GetNormalized());
+	}
+	Vec3 point3 = GJK3DSupportFunciton(a, b, newDireciton);
+	Vec3 triangleNormal = CrossProduct3D(point3 - point2, point1 - point2).GetNormalized();
+	Vec3 point4 = GJK3DSupportFunciton(a, b, triangleNormal * -1.0f);
+	points.push_back(point1);
+	points.push_back(point2);
+	points.push_back(point3);
+	points.push_back(point4);
+
+	ConvexPoly3D poly1;
+	poly1.m_ccwOrderedPoints.push_back(point1);
+	poly1.m_ccwOrderedPoints.push_back(point2);
+	poly1.m_ccwOrderedPoints.push_back(point3);
+	ConvexPoly3D poly2;
+	poly2.m_ccwOrderedPoints.push_back(point1);
+	poly2.m_ccwOrderedPoints.push_back(point3);
+	poly2.m_ccwOrderedPoints.push_back(point4);
+	ConvexPoly3D poly3;
+	poly3.m_ccwOrderedPoints.push_back(point3);
+	poly3.m_ccwOrderedPoints.push_back(point2);
+	poly3.m_ccwOrderedPoints.push_back(point4);
+	ConvexPoly3D poly4;
+	poly4.m_ccwOrderedPoints.push_back(point1);
+	poly4.m_ccwOrderedPoints.push_back(point4);
+	poly4.m_ccwOrderedPoints.push_back(point2);
+	Plane3D plane1(poly1);
+	Plane3D plane2(poly2);
+	Plane3D plane3(poly3);
+	Plane3D plane4(poly4);
+
+	ConvexHull3D hull;
+	hull.m_boundingPlanes.push_back(plane1);
+	hull.m_boundingPlanes.push_back(plane2);
+	hull.m_boundingPlanes.push_back(plane3);
+	hull.m_boundingPlanes.push_back(plane4);
+	hull.m_boundingPolys.push_back(poly1);
+	hull.m_boundingPolys.push_back(poly2);
+	hull.m_boundingPolys.push_back(poly3);
+	hull.m_boundingPolys.push_back(poly4);
+	hull.CalculateNewEpsilon(points);
+	
+	while (hull.IsPointInside(origin) == false)
+	{
+		//Find the plane where the point is outside of
+		int outsidePlaneIndex = -1;
+		float highestAlt = -100000000000.0f;
+		for (int index = 0; index < hull.m_boundingPlanes.size(); index++)
+		{
+			float alt = hull.m_boundingPlanes[index].GetAltitude(origin);
+			if (alt > highestAlt)
+			{
+				highestAlt = alt;
+				outsidePlaneIndex = index;
+			}
+		}
+
+		//Early out check
+		Vec3 currDir = hull.m_boundingPlanes[outsidePlaneIndex].m_normal;
+		Vec3 newPoint = GJK3DSupportFunciton(a, b, currDir);
+		float relation = DotProduct3D(newPoint, currDir);
+		if (relation <= 0.0f)
+		{
+			return false;
+		}
+
+		//Find the point that is not part of the plane
+		int indexToEliminate = -1;
+		for (int index = 0; index < points.size(); index++)
+		{
+			Vec3 currentPoint = points[index];
+			auto it = std::find(hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints.begin(), hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints.end(), currentPoint);
+			if (it == hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints.end())
+			{
+				indexToEliminate = index;
+			}
+		}	
+		points[indexToEliminate] = newPoint;
+		hull.CalculateNewEpsilon(points);
+
+		//Update planes and polys
+		hull.m_boundingPlanes[outsidePlaneIndex].m_normal *= -1.0f;
+		hull.m_boundingPlanes[outsidePlaneIndex].m_distanceFromOrigin *= -1.0f;
+		Vec3 tempPoint = hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[1];
+		hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[1] = hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[2];
+		hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[2] = tempPoint;
+
+		int counter = 0;
+		for (int index = 0; index < hull.m_boundingPlanes.size(); index++)
+		{
+			if (index != outsidePlaneIndex)
+			{
+				if (counter == 0)
+				{
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[0] = hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[0];
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[1] = newPoint;
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[2] = hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[1];
+
+				}
+				else if (counter == 1)
+				{
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[0] = hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[0];
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[1] = hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[2];
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[2] = newPoint;
+				}
+				else
+				{
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[0] = hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[2];
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[1] = hull.m_boundingPolys[outsidePlaneIndex].m_ccwOrderedPoints[1];
+					hull.m_boundingPolys[index].m_ccwOrderedPoints[2] = newPoint;
+				}
+				hull.m_boundingPlanes[index] = Plane3D(hull.m_boundingPolys[index]);
+				counter++;
+			}
+		}
+	}
+	return true;
+}
+
+//-----------------------------------------------------------------------------------------------
+Vec3 GJK3DSupportFunciton(RigidBody3D* a, RigidBody3D* b, Vec3 const& direction)
+{
+	Vec3 point1 = a->m_collider->GetFurthestPointInDireciton(direction);
+	Vec3 point2 = b->m_collider->GetFurthestPointInDireciton(-1.0f * direction);
+	Vec3 point3 = point1 - point2;
+	return point3;
+}
+
+//-----------------------------------------------------------------------------------------------
+ConvexPoly2D GetClippedPolygon2D(ConvexPoly2D const& referencePoly, ConvexPoly2D const& incidentPolygon)
+{// Sutherland-Hodgman Algorithm
+	ConvexHull2D referenceHull(referencePoly);
+	ConvexPoly2D previousClippedPoly = incidentPolygon;
+	ConvexPoly2D currentClippedPoly;
+	for (int planeIndex = 0; planeIndex < referenceHull.m_boundingPlanes.size(); planeIndex++)
+	{
+		Plane2D const& plane = referenceHull.m_boundingPlanes[planeIndex];
+		for (int pointIndex = 0; pointIndex < previousClippedPoly.m_ccwOrderedPoints.size(); pointIndex++)
+		{
+			Vec2 p1 = previousClippedPoly.m_ccwOrderedPoints[pointIndex];
+			Vec2 p2;
+			if (pointIndex == previousClippedPoly.m_ccwOrderedPoints.size() - 1)
+			{
+				p2 = previousClippedPoly.m_ccwOrderedPoints[0];
+			}
+			else
+			{
+				p2 = previousClippedPoly.m_ccwOrderedPoints[pointIndex + 1];
+			}
+
+			float p1Alt = DotProduct2D(p1, plane.m_normal) - plane.m_distanceFromOrigin;
+			float p2Alt = DotProduct2D(p2, plane.m_normal) - plane.m_distanceFromOrigin;
+
+			if (p1Alt <= 0.0f && p2Alt <= 0.0f)
+			{
+				currentClippedPoly.m_ccwOrderedPoints.push_back(p1);
+			}
+			else if (p1Alt > 0.0f && p2Alt > 0.0f)
+			{
+				continue;
+			}
+			else
+			{
+				Vec2 line = (p2 - p1).GetNormalized();
+				float impactDist = -(p1Alt / DotProduct2D(line, plane.m_normal));
+				Vec2 impactPoint = p1 + line * impactDist;
+				if (p1Alt <= 0.0f)
+				{
+					currentClippedPoly.m_ccwOrderedPoints.push_back(p1);
+				}
+				currentClippedPoly.m_ccwOrderedPoints.push_back(impactPoint);
+				if (p2Alt <= 0.0f)
+				{
+					currentClippedPoly.m_ccwOrderedPoints.push_back(p2);
+				}
+			}
+		}
+
+		previousClippedPoly = currentClippedPoly;
+		currentClippedPoly.m_ccwOrderedPoints.clear();
+	}
+
+	return previousClippedPoly;
+}
+
+//-----------------------------------------------------------------------------------------------
+ConvexPoly2D GetClippedPolygon2D(ConvexHull2D const& referenceHull, ConvexPoly2D const& incidentPolygon)
+{
+	// Sutherland-Hodgman Algorithm
+	ConvexPoly2D previousClippedPoly = incidentPolygon;
+	ConvexPoly2D currentClippedPoly;
+	for (int planeIndex = 0; planeIndex < referenceHull.m_boundingPlanes.size(); planeIndex++)
+	{
+		Plane2D const& plane = referenceHull.m_boundingPlanes[planeIndex];
+		for (int pointIndex = 0; pointIndex < previousClippedPoly.m_ccwOrderedPoints.size(); pointIndex++)
+		{
+			Vec2 p1 = previousClippedPoly.m_ccwOrderedPoints[pointIndex];
+			Vec2 p2;
+			if (pointIndex == previousClippedPoly.m_ccwOrderedPoints.size() - 1)
+			{
+				p2 = previousClippedPoly.m_ccwOrderedPoints[0];
+			}
+			else
+			{
+				p2 = previousClippedPoly.m_ccwOrderedPoints[pointIndex + 1];
+			}
+
+			float p1Alt = DotProduct2D(p1, plane.m_normal) - plane.m_distanceFromOrigin;
+			float p2Alt = DotProduct2D(p2, plane.m_normal) - plane.m_distanceFromOrigin;
+
+			if (p1Alt <= 0.0f && p2Alt <= 0.0f)
+			{
+				currentClippedPoly.m_ccwOrderedPoints.push_back(p1);
+			}
+			else if (p1Alt > 0.0f && p2Alt > 0.0f)
+			{
+				continue;
+			}
+			else
+			{
+				Vec2 line = (p2 - p1).GetNormalized();
+				float impactDist = -(p1Alt / DotProduct2D(line, plane.m_normal));
+				Vec2 impactPoint = p1 + line * impactDist;
+				if (p1Alt <= 0.0f)
+				{
+					currentClippedPoly.m_ccwOrderedPoints.push_back(p1);
+				}
+				currentClippedPoly.m_ccwOrderedPoints.push_back(impactPoint);
+				if (p2Alt <= 0.0f)
+				{
+					currentClippedPoly.m_ccwOrderedPoints.push_back(p2);
+				}
+			}
+		}
+
+		previousClippedPoly = currentClippedPoly;
+		currentClippedPoly.m_ccwOrderedPoints.clear();
+	}
+
+	return previousClippedPoly;
 }

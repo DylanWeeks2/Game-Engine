@@ -14,7 +14,7 @@ public:
 	ConvexHull2D(ConvexPoly2D convexPoly);
 	~ConvexHull2D() {}
 
-	bool					IsPointInside(Vec2 const& point);
+	bool IsPointInside(Vec2 const& point);
 
 public:
 	std::vector<Plane2D>	m_boundingPlanes;

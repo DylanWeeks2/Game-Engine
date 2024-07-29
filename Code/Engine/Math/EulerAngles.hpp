@@ -3,6 +3,7 @@
 //-----------------------------------------------------------------------------------------------
 struct Vec3;
 struct Mat44;
+struct Mat33;
 
 //-----------------------------------------------------------------------------------------------
 struct EulerAngles
@@ -14,6 +15,7 @@ public:
 	void	GetAsVectors_XFwd_YLeft_ZUp(Vec3& out_forwardIBasis, Vec3& out_leftJBasis, Vec3& out_upKBasis) const;
 	Vec3	GetForwardDirection_XFwd_YLeft_ZUp();
 	Mat44	GetAsMatrix_XFwd_YLeft_ZUp() const;
+	Mat33	GetAsMat33_XFwd_YLeft_ZUp() const;
 	void	SetFromText(char const* text);
 
 public:

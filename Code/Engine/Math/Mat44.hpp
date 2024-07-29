@@ -6,6 +6,7 @@ struct EulerAngles;
 struct Vec2;	
 struct Vec3;
 struct Vec4;
+struct Mat33;
 
 //-----------------------------------------------------------------------------------------------
 struct Mat44
@@ -18,6 +19,7 @@ struct Mat44
 	explicit Mat44(Vec3 const& iBasis3D, Vec3 const& jBasis3D, Vec3 const& kBasis3D, Vec3 const& translation3D);
 	explicit Mat44(Vec4 const& iBasis4D, Vec4 const& jBasis4D, Vec4 const& kBasis4D, Vec4 const& translation4D);
 	explicit Mat44(float const* sixteenValeusBasisMajor); 
+	explicit Mat44(Mat33 const& rotationMatrix);
 
 	static	Mat44 const CreateTranslation2D(Vec2 const& translationXY);
 	static	Mat44 const CreateTranslation3D(Vec3 const& translationXYZ);

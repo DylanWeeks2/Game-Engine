@@ -112,6 +112,14 @@ Vec3 const Vec3::GetNormalized() const
 }
 
 //-----------------------------------------------------------------------------------------------
+Vec3 const Vec3::GetReflected(Vec3 const& impactSurfaceNormal) const
+{
+	Vec3 translationDown = DotProduct3D(Vec3(x, y, z), impactSurfaceNormal) * impactSurfaceNormal;
+	Vec3 tanslationOver = Vec3(x, y, z) - translationDown;
+	return tanslationOver + translationDown * -1.0f;
+}
+
+//-----------------------------------------------------------------------------------------------
 void Vec3::SetLength(float maxLength)
 {
 	*this = GetNormalized() * maxLength;
@@ -251,4 +259,15 @@ void Vec3::ClampLength(float maxLength)
 		y *= scale;
 		z *= scale;
 	}
+}
+
+//-----------------------------------------------------------------------------------------------
+void Vec3::Reflect(Vec3 const& impactSurfaceNormal)
+{
+	Vec3 translationDown = DotProduct3D(Vec3(x, y, z), impactSurfaceNormal) * impactSurfaceNormal;
+	Vec3 tanslationOver = Vec3(x, y, z) - translationDown;
+	Vec3 reflected = tanslationOver + translationDown * -1.0f;
+	x = reflected.x;
+	y = reflected.y;
+	z = reflected.z;
 }

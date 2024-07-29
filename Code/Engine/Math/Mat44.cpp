@@ -4,6 +4,7 @@
 #include "Vec4.hpp"
 #include "MathUtils.hpp"
 #include "EulerAngles.hpp"
+#include "Mat33.hpp"
 #include "Engine/Core/StringUtils.hpp"
 
 //-----------------------------------------------------------------------------------------------
@@ -125,6 +126,12 @@ Mat44::Mat44(float const* sixteenValeusBasisMajor)
 	m_values[Ty] = sixteenValeusBasisMajor[Ty];
 	m_values[Tz] = sixteenValeusBasisMajor[Tz];
 	m_values[Tw] = sixteenValeusBasisMajor[Tw];
+}
+
+//-----------------------------------------------------------------------------------------------
+Mat44::Mat44(Mat33 const& rotationMatrix)
+{
+	SetIJK3D(rotationMatrix.GetIBasis3D(), rotationMatrix.GetJBasis3D(), rotationMatrix.GetKBasis3D());
 }
 
 //-----------------------------------------------------------------------------------------------

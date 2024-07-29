@@ -30,6 +30,7 @@ public:
 	Vec3 const			GetRotatedAboutZDegrees(float deltaDegrees) const;
 	Vec3 const			GetClamped(float maxLength) const;
 	Vec3 const			GetNormalized() const;
+	Vec3 const			GetReflected(Vec3 const& impactSurfaceNormal) const;
 
 	void				SetLength(float maxLength);
 
@@ -51,6 +52,7 @@ public:
 
 	void				Normalize();
 	void				ClampLength(float maxLength);
+	void				Reflect(Vec3 const& impactSurfaceNormal);
 
 	//Standalone "friend" funcitons that are conceptually, but not actually, part of Vec3::
 	friend Vec3 const	operator*(float uniformScale, Vec3 const& vecToScale); //float * vec3

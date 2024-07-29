@@ -15,4 +15,7 @@ public:
 	LineSegment3(LineSegment3 const& copyFrom);
 	explicit LineSegment3(float startX, float startY, float startZ, float endX, float endY, float endZ);
 	explicit LineSegment3(Vec3 const& start, Vec3 const& end);
+
+	bool	operator!=(LineSegment3& compareLine);
+	bool	operator==(LineSegment3& compareLine);
 };
